@@ -1,3 +1,4 @@
+
 # SkillSphere – Next-Gen Career & Job Portal
 
 > **SkillSphere** is an enterprise-grade full-stack career and hiring intelligence portal featuring **optical character recognition (OCR) resume parsing**, an **explainable resume-to-job skill matching algorithm**, an **interactive ATS Kanban pipeline**, and an aesthetic **Glassmorphic UI** powered by React, Tailwind CSS, GSAP, and Framer Motion.
@@ -171,8 +172,6 @@ backend/tests/test_api.py::test_duplicate_application_prevention PASSED  [ 71%]
 backend/tests/test_api.py::test_recruiter_applicant_tracking_and_status_update PASSED [ 85%]
 backend/tests/test_api.py::test_admin_analytics_metrics PASSED           [100%]
 
-======================== 7 passed in 1.86s ========================
-```
 
 ---
 
@@ -215,3 +214,6 @@ backend/tests/test_api.py::test_admin_analytics_metrics PASSED           [100%]
 * **OCR Pipeline**: Image contrast & noise enhancement, PyPDF page-by-page extractor, Tesseract wrapper, regex entity parsers for name/email/phone/degrees/experience, and canonical dictionary matching across 150+ tech skills.
 * **Database**: PostgreSQL / SQLite (11 normalized tables with foreign keys and cascade actions).
 * **Containerization**: Docker & Docker Compose multi-stage builds.
+=======
+# SkillSphere
+>>>>>>> 5110990c0d30407f9e41cc1e136bc3fce05d5ebc
