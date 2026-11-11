@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: skillsphere_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skillsphere_user
+      POSTGRES_PASSWORD: skillsphere_pass
+      POSTGRES_DB: skillsphere_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skillsphere_backend
+    restart: unless-stopped
+    depends_on:
+      - database
+    environment:
+      - DATABASE_URL=postgresql://skillsphere_user:skillsphere_pass@database:5432/skillsphere_db
+      - SECRET_KEY=skillsphere-production-secret-key-2026
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: skillsphere_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:
