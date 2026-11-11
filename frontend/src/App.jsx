@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import DemoRoleSwitcher from './components/DemoRoleSwitcher';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -63,6 +64,7 @@ export default function App() {
               </Routes>
             </main>
             <Footer />
+            <DemoRoleSwitcher />
           </div>
         </AuthProvider>
       </ToastProvider>

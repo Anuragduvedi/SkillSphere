@@ -8,12 +8,14 @@ import {
   Loader2, 
   Building2, 
   MapPin, 
-  Briefcase 
+  Briefcase,
+  Download
 } from 'lucide-react';
 import RadialGauge from './RadialGauge';
 import { resumeAPI, applicationsAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { generateResumeAnalysisReport } from '../services/reportGenerator';
 import confetti from 'canvas-confetti';
 
 export default function MatchAnalysisModal({ isOpen, onClose, job, onApplied }) {
@@ -186,23 +188,32 @@ export default function MatchAnalysisModal({ isOpen, onClose, job, onApplied }) 
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
-              >
-                Close Report
-              </button>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => generateResumeAnalysisReport(analysis, user?.name)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 flex items-center gap-1.5 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export PDF Report
+                </button>
+              </div>
 
               {applied ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 w-full sm:w-auto justify-center">
                   <CheckCircle2 className="w-4 h-4" /> Application Submitted
                 </div>
               ) : (
                 <button
                   disabled={applying}
                   onClick={handleApply}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/30 hover:brightness-110 flex items-center gap-2 transition-all"
+                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/30 hover:brightness-110 flex items-center justify-center gap-2 transition-all w-full sm:w-auto"
                 >
                   {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   Submit Application Now

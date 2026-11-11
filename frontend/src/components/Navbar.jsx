@@ -11,7 +11,10 @@ import {
   Menu, 
   X,
   Compass,
-  Sparkles
+  Sparkles,
+  Bell,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -19,10 +22,43 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      title: 'Interview Stage Scheduled',
+      message: 'TechNova Labs moved your application to the Interview round.',
+      time: '12m ago',
+      unread: true,
+      type: 'interview'
+    },
+    {
+      id: 2,
+      title: 'OCR Extraction Synchronized',
+      message: 'Resume OCR completed with 10 verified skill proficiencies.',
+      time: '1h ago',
+      unread: true,
+      type: 'ocr'
+    },
+    {
+      id: 3,
+      title: 'High AI Fit Detected',
+      message: '92% match score computed for Frontend UI Architect.',
+      time: '3h ago',
+      unread: false,
+      type: 'match'
+    }
+  ]);
+
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const markAllRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, unread: false })));
   };
 
   const isActive = (path) => location.pathname === path;
@@ -110,7 +146,63 @@ export default function Navbar() {
           {/* Right User Actions */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-3 pl-3 border-l border-white/10">
+              <div className="flex items-center gap-3 pl-3 border-l border-white/10 relative">
+                
+                {/* Notification Bell */}
+                <div className="relative">
+                  <button
+                    onClick={() => setNotificationsOpen(!notificationsOpen)}
+                    className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors relative"
+                    title="System Notifications"
+                  >
+                    <Bell className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown Drawer */}
+                  {notificationsOpen && (
+                    <div className="absolute right-0 mt-3 w-80 rounded-2xl glass-panel border border-white/20 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">Telemetry Notifications</span>
+                          {unreadCount > 0 && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={markAllRead}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold"
+                        >
+                          Mark all read
+                        </button>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                        {notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            className={`p-2.5 rounded-xl border transition-colors ${
+                              n.unread
+                                ? 'bg-cyan-950/30 border-cyan-500/30 text-slate-200'
+                                : 'bg-white/[0.02] border-white/5 text-slate-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[11px] font-bold text-white mb-1">
+                              <span>{n.title}</span>
+                              <span className="text-[10px] text-slate-500 font-normal">{n.time}</span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-slate-300">{n.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-col text-right">
                   <span className="text-sm font-semibold text-white truncate max-w-[140px]">{user.name}</span>
                   <span className="text-[11px] capitalize text-slate-400 font-mono flex items-center justify-end gap-1">

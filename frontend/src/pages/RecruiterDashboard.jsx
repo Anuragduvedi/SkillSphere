@@ -340,11 +340,29 @@ export default function RecruiterDashboard() {
             return (
               <div
                 key={stage}
-                className="bg-dark-850/80 rounded-2xl border border-white/10 p-3 min-w-[220px] flex flex-col max-h-[750px]"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('border-purple-500', 'bg-purple-950/20');
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('border-purple-500', 'bg-purple-950/20');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-purple-500', 'bg-purple-950/20');
+                  const appIdStr = e.dataTransfer.getData('applicationId');
+                  if (appIdStr) {
+                    handleStatusChange(Number(appIdStr), stage);
+                  }
+                }}
+                className="bg-dark-850/80 rounded-2xl border border-white/10 p-3 min-w-[220px] flex flex-col max-h-[750px] transition-colors"
               >
                 {/* Stage Header */}
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">{stage}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">{stage}</span>
+                  </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/10 text-slate-300">
                     {stageApps.length}
                   </span>
@@ -355,12 +373,20 @@ export default function RecruiterDashboard() {
                   {stageApps.map((app) => (
                     <div
                       key={app.application_id}
-                      className="p-3.5 rounded-xl glass-card border border-white/10 hover:border-purple-500/40 cursor-pointer space-y-2.5 transition-all"
+                      draggable="true"
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('applicationId', app.application_id.toString());
+                        e.currentTarget.classList.add('opacity-50');
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.classList.remove('opacity-50');
+                      }}
+                      className="p-3.5 rounded-xl glass-card border border-white/10 hover:border-purple-500/50 cursor-grab active:cursor-grabbing space-y-2.5 transition-all shadow-md group"
                       onClick={() => setSelectedApplicant(app)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="text-xs font-bold text-white hover:text-cyan-300 transition-colors">
+                          <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
                             {app.candidate_name}
                           </h4>
                           <p className="text-[10px] text-slate-400 line-clamp-1">{app.job_title}</p>
@@ -381,9 +407,9 @@ export default function RecruiterDashboard() {
                         ))}
                       </div>
 
-                      {/* Stage Changer Dropdown */}
+                      {/* Stage Changer Dropdown & Drag Hint */}
                       <div className="pt-2 border-t border-white/5 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-[9px] text-slate-500">Move:</span>
+                        <span className="text-[9px] text-slate-500">Drag or select:</span>
                         <select
                           value={app.status}
                           onChange={(e) => handleStatusChange(app.application_id, e.target.value)}
@@ -399,8 +425,8 @@ export default function RecruiterDashboard() {
                   ))}
 
                   {stageApps.length === 0 && (
-                    <div className="py-8 text-center text-[11px] text-slate-500">
-                      Empty stage
+                    <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-xl text-[11px] text-slate-500">
+                      Drop candidate here
                     </div>
                   )}
                 </div>
