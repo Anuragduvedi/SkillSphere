@@ -13,11 +13,15 @@ import {
   Loader2, 
   Search,
   Layers,
-  Database
+  Database,
+  BrainCircuit,
+  ShieldAlert
 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import ScreeningAssessmentView from '../components/ScreeningAssessmentView';
+import RecruiterProctoringDashboard from '../components/RecruiterProctoringDashboard';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -190,7 +194,35 @@ export default function AdminDashboard() {
         >
           <Briefcase className="w-4 h-4" /> Job Moderation ({jobsList.length})
         </button>
+
+        <button
+          onClick={() => setActiveTab('screening')}
+          className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === 'screening' ? 'border-cyan-400 text-cyan-300 font-bold' : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <BrainCircuit className="w-4 h-4 text-cyan-400" /> AI Screening & Assessments
+        </button>
+
+        <button
+          onClick={() => setActiveTab('proctoring')}
+          className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === 'proctoring' ? 'border-rose-400 text-rose-300 font-bold' : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4 text-rose-400" /> Proctoring & Exam Monitoring
+        </button>
       </div>
+
+      {/* ================= TAB 0: AI SCREENING & ASSESSMENTS ================= */}
+      {activeTab === 'screening' && (
+        <ScreeningAssessmentView />
+      )}
+
+      {/* ================= TAB 0.5: ADVANCED AI PROCTORING & MONITORING ================= */}
+      {activeTab === 'proctoring' && (
+        <RecruiterProctoringDashboard recruiterJobs={jobsList} />
+      )}
 
       {/* ================= TAB 1: PLATFORM TELEMETRY ================= */}
       {activeTab === 'analytics' && (

@@ -3,13 +3,46 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 
+from sqlalchemy import text
 from app.core.config import settings
 from app.database import engine, Base
-from app.routers import auth, resume, jobs, applications, recruiter, admin
+from app.routers import auth, resume, jobs, applications, recruiter, admin, assessment, chatbot
 from app.seed import seed_database
 
 # Create DB schema
 Base.metadata.create_all(bind=engine)
+try:
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(assessments)")).fetchall()]
+        if 'template_id' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN template_id INTEGER REFERENCES assessment_templates(template_id)"))
+        if 'passing_percentage' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN passing_percentage FLOAT DEFAULT 60.0"))
+        if 'violation_count' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN violation_count INTEGER DEFAULT 0"))
+        if 'auto_submitted_proctoring' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN auto_submitted_proctoring BOOLEAN DEFAULT 0"))
+        if 'proctoring_submission_reason' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN proctoring_submission_reason TEXT"))
+        if 'description' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN description TEXT"))
+        if 'expires_at' not in cols:
+            conn.execute(text("ALTER TABLE assessments ADD COLUMN expires_at DATETIME"))
+
+        # Check assessment_templates columns
+        t_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(assessment_templates)")).fetchall()]
+        if 'description' not in t_cols:
+            conn.execute(text("ALTER TABLE assessment_templates ADD COLUMN description TEXT"))
+
+        # Check proctoring_events columns
+        p_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(proctoring_events)")).fetchall()]
+        if 'strike_number' not in p_cols:
+            conn.execute(text("ALTER TABLE proctoring_events ADD COLUMN strike_number INTEGER DEFAULT 1"))
+        if 'session_id' not in p_cols:
+            conn.execute(text("ALTER TABLE proctoring_events ADD COLUMN session_id VARCHAR(100)"))
+        conn.commit()
+except Exception as e:
+    pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +78,8 @@ app.include_router(jobs.router, prefix=settings.API_V1_STR)
 app.include_router(applications.router, prefix=settings.API_V1_STR)
 app.include_router(recruiter.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(assessment.router, prefix=settings.API_V1_STR)
+app.include_router(chatbot.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

@@ -9,6 +9,11 @@ from app.models.models import (
     Job,
     Application,
     ResumeAnalysis,
+    Assessment,
+    AssessmentQuestion,
+    EmailNotification,
+    RecruiterQuestion,
+    AssessmentTemplate,
     candidate_skills,
     job_skills,
 )
@@ -24,6 +29,11 @@ __all__ = [
     "Job",
     "Application",
     "ResumeAnalysis",
+    "Assessment",
+    "AssessmentQuestion",
+    "EmailNotification",
+    "RecruiterQuestion",
+    "AssessmentTemplate",
     "candidate_skills",
     "job_skills",
 ]

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.3",
     "axios": "^1.6.8",
     "canvas-confetti": "^1.9.2",
     "clsx": "^2.1.0",

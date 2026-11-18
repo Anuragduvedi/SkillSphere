@@ -1,11 +1,19 @@
 import os
+import json
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, Base, engine
 from app.models.models import (
-    User, Candidate, Recruiter, Company, Skill, Job, Resume, Application, ResumeAnalysis
+    User, Candidate, Recruiter, Company, Skill, Job, Resume, Application, ResumeAnalysis,
+    Assessment, AssessmentQuestion, EmailNotification, RecruiterQuestion, AssessmentTemplate
 )
 from app.core.security import get_password_hash
 from app.services.matching_service import MatchingService
+from app.services.assessment_service import AssessmentService
+from app.services.email_service import EmailService
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 def seed_database():
     print("Creating tables...")
@@ -372,6 +380,136 @@ def seed_database():
         ))
 
         db.commit()
+
+        print("Seeding recruiter question bank and assessment templates...")
+        # Seed questions for Sarah Jenkins (recruiter_profile.recruiter_id)
+        # Import Python, React, and DevOps questions
+        try:
+            AssessmentService.import_library_questions(db, recruiter_id=recruiter_profile.recruiter_id, technology="Python", count=25, job_id=job1.job_id)
+            AssessmentService.import_library_questions(db, recruiter_id=recruiter_profile.recruiter_id, technology="React", count=20, job_id=job3.job_id)
+            AssessmentService.import_library_questions(db, recruiter_id=recruiter_profile.recruiter_id, technology="Fullstack MERN", count=20, job_id=job1.job_id)
+            print("Imported core technical question library into recruiter question bank.")
+
+            # Create Published Assessment Template for Job 1 (Senior Full Stack Engineer)
+            q_objs_job1 = db.query(RecruiterQuestion.question_id).filter(
+                RecruiterQuestion.recruiter_id == recruiter_profile.recruiter_id,
+                RecruiterQuestion.technology.in_(["Python", "Fullstack Mern"])
+            ).limit(20).all()
+            q_ids_job1 = [q[0] for q in q_objs_job1]
+
+            template1 = AssessmentTemplate(
+                recruiter_id=recruiter_profile.recruiter_id,
+                job_id=job1.job_id,
+                title="Full-Stack Python & React Assessment",
+                tech_stack="Python / React / FastAPI",
+                duration_minutes=25,
+                passing_percentage=60.0,
+                status="published",
+                question_ids=json.dumps(q_ids_job1),
+                created_at=utc_now(),
+                updated_at=utc_now()
+            )
+            db.add(template1)
+
+            # Create Published Assessment Template for Job 3 (Interactive UI Engineer)
+            q_objs_job3 = db.query(RecruiterQuestion.question_id).filter(
+                RecruiterQuestion.recruiter_id == recruiter_profile.recruiter_id,
+                RecruiterQuestion.technology == "React"
+            ).limit(20).all()
+            q_ids_job3 = [q[0] for q in q_objs_job3]
+
+            template3 = AssessmentTemplate(
+                recruiter_id=recruiter_profile.recruiter_id,
+                job_id=job3.job_id,
+                title="Interactive UI Craftsmanship Assessment",
+                tech_stack="React / Tailwind / Component Architecture",
+                duration_minutes=30,
+                passing_percentage=65.0,
+                status="published",
+                question_ids=json.dumps(q_ids_job3 if len(q_ids_job3) == 20 else q_ids_job1),
+                created_at=utc_now(),
+                updated_at=utc_now()
+            )
+            db.add(template3)
+
+            # Create Draft Assessment Template for Job 2 (AI Engineer) with 10 questions
+            template2 = AssessmentTemplate(
+                recruiter_id=recruiter_profile.recruiter_id,
+                job_id=job2.job_id,
+                title="Inference Pipeline & PyTorch Evaluation (Draft)",
+                tech_stack="PyTorch / Deep Learning / Python",
+                duration_minutes=40,
+                passing_percentage=70.0,
+                status="draft",
+                question_ids=json.dumps(q_ids_job1[:12]),
+                created_at=utc_now(),
+                updated_at=utc_now()
+            )
+            db.add(template2)
+            db.commit()
+            print("Seeded published and draft recruiter assessment templates.")
+        except Exception as q_err:
+            print(f"Notice seeding recruiter questions/templates: {q_err}")
+
+        print("Seeding sample AI screening assessments & email audit logs...")
+        # 1. Assessment for Alex Rivera on Job 1 (pending, ready to take)
+        try:
+            alex_assessment = AssessmentService.generate_assessment(
+                db=db,
+                candidate=candidate_profile,
+                job=job1,
+                application_id=app1.application_id,
+                time_limit_minutes=25
+            )
+            # Give Alex a predictable test_token for easy demoing
+            alex_assessment.test_token = "demo_alex_test_token"
+            db.commit()
+            print(f"Generated sample assessment for Alex Rivera (Token: {alex_assessment.test_token})")
+        except Exception as err:
+            print(f"Notice generating assessment: {err}")
+
+        # 2. Completed Assessment for Sophia on Job 3 (UI Engineer)
+        try:
+            sophia_assessment = AssessmentService.generate_assessment(
+                db=db,
+                candidate=sophia_cand,
+                job=job3,
+                time_limit_minutes=25
+            )
+            # Submit answers for Sophia to simulate a completed 90% score
+            mock_answers = {}
+            for q in sophia_assessment.questions[:18]:
+                mock_answers[str(q.question_id)] = q.correct_answer
+            # 2 wrong answers
+            for q in sophia_assessment.questions[18:]:
+                mock_answers[str(q.question_id)] = "Incorrect Choice"
+            AssessmentService.submit_and_evaluate(
+                db=db,
+                assessment_id=sophia_assessment.assessment_id,
+                submitted_answers=mock_answers,
+                user=sophia_cand.user
+            )
+            print("Generated and evaluated completed assessment for Sophia Martinez (Score: 18/20, 90%)")
+        except Exception as err:
+            print(f"Notice evaluating assessment: {err}")
+
+        # Seed initial shortlist & invitation emails
+        try:
+            EmailService.send_shortlist_email(
+                db=db,
+                candidate=candidate_profile,
+                job=job1,
+                match_percentage=88.5,
+                reasons=[
+                    "Passed Screening: Candidate achieved 88.5%, surpassing the 70.0% benchmark for automatic shortlisting.",
+                    "Technical Skills: Aligned on 4/4 required proficiencies (React, FastAPI, Docker, PostgreSQL).",
+                    "Experience: Candidate provides ~4.0 yrs experience, exceeding required 3-5 years.",
+                    "Education: Verified Bachelor/Master degree in STEM/Computer Science."
+                ]
+            )
+        except Exception as err:
+            print(f"Notice sending email: {err}")
+
         print("Database seeded successfully with rich demo data!")
 
     except Exception as e:

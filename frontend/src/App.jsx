@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import DemoRoleSwitcher from './components/DemoRoleSwitcher';
+import AIChatbot from './components/AIChatbot';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -14,6 +15,7 @@ import JobSeekerDashboard from './pages/JobSeekerDashboard';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import JobDetailsPage from './pages/JobDetailsPage';
+import AssessmentPage from './pages/AssessmentPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -29,6 +31,7 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/jobs" element={<JobDetailsPage />} />
+                <Route path="/assessment/:token" element={<AssessmentPage />} />
                 
                 {/* Candidate Portal */}
                 <Route
@@ -65,6 +68,7 @@ export default function App() {
             </main>
             <Footer />
             <DemoRoleSwitcher />
+            <AIChatbot />
           </div>
         </AuthProvider>
       </ToastProvider>

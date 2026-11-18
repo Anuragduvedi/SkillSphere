@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "uploads"))
     MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
     ALLOWED_EXTENSIONS: list = [".pdf", ".jpg", ".jpeg", ".png"]
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
     class Config:
         env_file = ".env"

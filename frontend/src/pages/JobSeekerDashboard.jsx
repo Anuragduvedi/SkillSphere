@@ -19,9 +19,14 @@ import {
   Loader2,
   ChevronRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  BrainCircuit,
+  Award,
+  ExternalLink,
+  Calendar,
+  ShieldAlert
 } from 'lucide-react';
-import { jobsAPI, resumeAPI, applicationsAPI } from '../services/api';
+import { jobsAPI, resumeAPI, applicationsAPI, assessmentAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import RadialGauge from '../components/RadialGauge';
@@ -52,6 +57,10 @@ export default function JobSeekerDashboard() {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  // Technical Assessments state
+  const [tests, setTests] = useState([]);
+  const [loadingTests, setLoadingTests] = useState(false);
+
   // Modals state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState(null);
@@ -61,7 +70,20 @@ export default function JobSeekerDashboard() {
     fetchProfile();
     fetchJobs();
     fetchApplications();
+    fetchTests();
   }, []);
+
+  const fetchTests = async () => {
+    setLoadingTests(true);
+    try {
+      const res = await assessmentAPI.getMyTests();
+      setTests(res.data || []);
+    } catch (err) {
+      console.error('Error fetching assessments:', err);
+    } finally {
+      setLoadingTests(false);
+    }
+  };
 
   const fetchProfile = async () => {
     setLoadingProfile(true);
@@ -229,6 +251,21 @@ export default function JobSeekerDashboard() {
         >
           <Edit3 className="w-4 h-4" />
           Profile & OCR Credentials
+        </button>
+
+        <button
+          onClick={() => setActiveTab('assessments')}
+          className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 relative ${
+            activeTab === 'assessments'
+              ? 'border-cyan-400 text-cyan-300'
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <BrainCircuit className="w-4 h-4 text-cyan-400" />
+          <span>Technical Tests ({tests.length})</span>
+          {tests.filter((t) => t.status !== 'completed').length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-0 right-1" />
+          )}
         </button>
       </div>
 
@@ -518,8 +555,34 @@ export default function JobSeekerDashboard() {
                     </div>
                   </div>
 
-                  {/* Right: Match Score & Withdraw */}
-                  <div className="flex items-center gap-5 justify-between lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0 border-white/10">
+                  {/* Right: Assessment Link, Match Score & Withdraw */}
+                  <div className="flex flex-wrap items-center gap-4 justify-between lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0 border-white/10">
+                    {/* Check if test exists for this job */}
+                    {(() => {
+                      const test = tests.find((t) => t.job_id === app.job_id);
+                      if (!test) return null;
+                      if (test.status === 'completed') {
+                        return (
+                          <a
+                            href={`/assessment/${test.test_token}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span>Score: {test.score}/20 ({test.percentage}%)</span>
+                          </a>
+                        );
+                      }
+                      return (
+                        <a
+                          href={`/assessment/${test.test_token}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-md shadow-cyan-500/20 hover:brightness-110 transition-all animate-pulse"
+                        >
+                          <BrainCircuit className="w-3.5 h-3.5" />
+                          <span>Take 20-Q Test</span>
+                        </a>
+                      );
+                    })()}
+
                     {app.match_score && (
                       <div className="text-right">
                         <span className="text-[10px] uppercase text-slate-400 block font-medium">Match Score</span>
@@ -633,6 +696,215 @@ export default function JobSeekerDashboard() {
 
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= TAB 4: TECHNICAL ASSESSMENTS ================= */}
+      {activeTab === 'assessments' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold font-heading text-white flex items-center gap-2">
+                <BrainCircuit className="w-5 h-5 text-cyan-400" />
+                AI Technical Assessments
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Dynamic 20-question technical tests generated based on your resume and matched job requirements.
+              </p>
+            </div>
+            <button
+              onClick={fetchTests}
+              className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-slate-300 border border-white/10 self-start sm:self-auto"
+            >
+              Refresh Tests
+            </button>
+          </div>
+
+          {loadingTests ? (
+            <div className="py-20 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto" />
+              <p className="text-xs text-slate-400">Loading your assigned assessments...</p>
+            </div>
+          ) : tests.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl glass-card border border-white/10">
+              <BrainCircuit className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-white mb-1">No assessments assigned yet</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+                When an application matches 70% or above of a job's criteria, the AI screening engine automatically generates a 20-question test tailored to your tech stack.
+              </p>
+              <button
+                onClick={() => setActiveTab('jobs')}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-colors"
+              >
+                Browse Matching Openings
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {tests.map((test) => {
+                const isCompleted = test.status === 'completed';
+                const isTerminated = test.status === 'terminated_proctoring';
+                const isExpired = test.status === 'expired' || (!isCompleted && !isTerminated && test.expires_at && new Date(test.expires_at) < new Date());
+                const isInProgress = test.status === 'in_progress' && !isExpired;
+                const isPassed = test.passed;
+
+                return (
+                  <div
+                    key={test.assessment_id}
+                    className={`p-6 rounded-3xl glass-card border transition-all flex flex-col justify-between ${
+                      isExpired
+                        ? 'border-slate-700 bg-slate-900/30 opacity-75'
+                        : isTerminated
+                        ? 'border-rose-600/40 bg-rose-950/20'
+                        : isCompleted
+                        ? isPassed
+                          ? 'border-emerald-500/30 bg-emerald-500/5'
+                          : 'border-amber-500/30 bg-amber-500/5'
+                        : isInProgress
+                        ? 'border-cyan-500/50 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                        : 'border-cyan-500/30 bg-cyan-500/5 ring-1 ring-cyan-500/20'
+                    }`}
+                  >
+                    <div>
+                      {/* Top status & tech stack */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-cyan-300 border border-white/10">
+                          {test.tech_stack || 'Technical Evaluation'}
+                        </span>
+
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
+                          isExpired
+                            ? 'bg-slate-700/50 text-slate-400 border border-slate-600'
+                            : isTerminated
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            : isCompleted
+                            ? isPassed
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : isInProgress
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 animate-pulse'
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {isExpired ? (
+                            <>
+                              <AlertCircle className="w-3 h-3" /> Expired
+                            </>
+                          ) : isTerminated ? (
+                            <>
+                              <ShieldAlert className="w-3 h-3" /> Terminated (Proctoring)
+                            </>
+                          ) : isCompleted ? (
+                            isPassed ? 'Passed' : 'Under Review'
+                          ) : isInProgress ? (
+                            <>
+                              <Clock className="w-3 h-3" /> In Progress
+                            </>
+                          ) : (
+                            'Pending Attempt'
+                          )}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-bold text-white mb-1">{test.title}</h3>
+                      {test.description && (
+                        <p className="text-xs text-slate-400 mb-2 line-clamp-2">{test.description}</p>
+                      )}
+                      <p className="text-xs text-slate-400 flex items-center gap-2 mb-4">
+                        <span className="flex items-center gap-1 text-slate-300">
+                          <Briefcase className="w-3.5 h-3.5 text-cyan-400" /> {test.job_title}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                          {test.company_name}
+                        </span>
+                      </p>
+
+                      {/* Specs pills */}
+                      <div className="flex flex-wrap items-center gap-2 mb-6 text-xs text-slate-300">
+                        <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10">
+                          {test.total_questions || 20} Questions
+                        </span>
+                        <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-cyan-400" /> {test.time_limit_minutes || 25} Mins
+                        </span>
+                        <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10">
+                          Pass Mark: {test.passing_percentage || 60}%
+                        </span>
+                        {test.expires_at && (
+                          <span className={`px-2.5 py-1 rounded-md border flex items-center gap-1 ${
+                            isExpired
+                              ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                              : 'bg-white/5 border-white/10 text-slate-300'
+                          }`}>
+                            <Calendar className="w-3 h-3 text-cyan-400" />
+                            {isExpired ? 'Expired: ' : 'Deadline: '}
+                            {new Date(test.expires_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Action */}
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                      {isCompleted ? (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-base font-extrabold ${isPassed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {test.score}/{test.total_questions || 20} ({test.percentage}%)
+                          </span>
+                        </div>
+                      ) : isTerminated ? (
+                        <span className="text-xs text-rose-400 font-semibold flex items-center gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5" /> 3 Proctoring Strikes
+                        </span>
+                      ) : isExpired ? (
+                        <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-400" /> Link Expired
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-300 font-semibold flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> Ready to Take
+                        </span>
+                      )}
+
+                      {isExpired ? (
+                        <button
+                          disabled
+                          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-white/5 text-slate-500 border border-white/10 cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          <span>Assessment Expired</span>
+                        </button>
+                      ) : isCompleted ? (
+                        <a
+                          href={`/assessment/${test.test_token}`}
+                          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 transition-all"
+                        >
+                          <span>View Full Breakdown</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      ) : isTerminated ? (
+                        <a
+                          href={`/assessment/${test.test_token}`}
+                          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 flex items-center gap-1.5 transition-all"
+                        >
+                          <span>View Violation Report</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      ) : (
+                        <a
+                          href={`/assessment/${test.test_token}`}
+                          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-lg shadow-cyan-500/20 hover:brightness-110 flex items-center gap-1.5 transition-all"
+                        >
+                          <span>{isInProgress ? 'Resume Assessment' : 'Start Assessment'}</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

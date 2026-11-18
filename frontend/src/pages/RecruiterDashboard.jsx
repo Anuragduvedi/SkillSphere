@@ -19,13 +19,19 @@ import {
   X,
   MapPin,
   DollarSign,
-  ChevronDown
+  ChevronDown,
+  BrainCircuit,
+  ClipboardList,
+  ShieldAlert
 } from 'lucide-react';
 import { recruiterAPI, jobsAPI, applicationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import RadialGauge from '../components/RadialGauge';
 import StatusBadge from '../components/StatusBadge';
+import ScreeningAssessmentView from '../components/ScreeningAssessmentView';
+import RecruiterAssessmentManager from '../components/RecruiterAssessmentManager';
+import RecruiterProctoringDashboard from '../components/RecruiterProctoringDashboard';
 
 const ATS_STAGES = ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Selected', 'Rejected'];
 
@@ -259,7 +265,7 @@ export default function RecruiterDashboard() {
       <div className="p-4 rounded-2xl glass-panel border border-white/10 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         
         {/* Left Tabs */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setActiveTab('kanban')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -292,9 +298,43 @@ export default function RecruiterDashboard() {
           >
             <Briefcase className="w-4 h-4" /> My Openings ({recruiterJobs.length})
           </button>
+
+          <button
+            onClick={() => setActiveTab('screening')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'screening'
+                ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <BrainCircuit className="w-4 h-4" /> AI Screening & Assessments
+          </button>
+
+          <button
+            onClick={() => setActiveTab('custom-assessments')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'custom-assessments'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" /> Manage Custom Tests
+          </button>
+
+          <button
+            onClick={() => setActiveTab('proctoring')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'proctoring'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-md shadow-cyan-500/30 font-extrabold'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 text-cyan-400" /> AI Proctoring & Monitoring
+          </button>
         </div>
 
         {/* Right Search & Job Filters */}
+        {activeTab !== 'custom-assessments' && activeTab !== 'proctoring' && (
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedJobFilter}
@@ -328,6 +368,7 @@ export default function RecruiterDashboard() {
             className="px-3 py-1.5 text-xs rounded-xl glass-input w-28 sm:w-36"
           />
         </div>
+        )}
 
       </div>
 
@@ -554,6 +595,21 @@ export default function RecruiterDashboard() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* ================= VIEW 4: AI SCREENING & ASSESSMENTS ================= */}
+      {activeTab === 'screening' && (
+        <ScreeningAssessmentView />
+      )}
+
+      {/* ================= VIEW 5: RECRUITER-CONTROLLED CUSTOM ASSESSMENTS ================= */}
+      {activeTab === 'custom-assessments' && (
+        <RecruiterAssessmentManager />
+      )}
+
+      {/* ================= VIEW 6: ADVANCED AI PROCTORING & MONITORING ================= */}
+      {activeTab === 'proctoring' && (
+        <RecruiterProctoringDashboard recruiterJobs={recruiterJobs} />
       )}
 
       {/* ================= MODAL: CREATE JOB OPENING ================= */}
@@ -785,3 +841,5 @@ export default function RecruiterDashboard() {
     </div>
   );
 }
+
+
