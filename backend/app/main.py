@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import os
 
 from sqlalchemy import text
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.database import engine, Base
 from app.routers import auth, resume, jobs, applications, recruiter, admin, assessment, chatbot
@@ -65,11 +66,23 @@ app = FastAPI(
 # CORS configuration for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://skillsphere-frontend-62ul.onrender.com",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "*"
+    ],
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static uploads directory if available
+if os.path.exists(settings.UPLOAD_DIR):
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Include API Routers
 app.include_router(auth.router, prefix=settings.API_V1_STR)

@@ -1,8 +1,25 @@
 
 import axios from 'axios';
 
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    let url = envUrl.trim();
+    if (!url.endsWith('/api/v1')) {
+      url = url.replace(/\/+$/, '') + '/api/v1';
+    }
+    return url;
+  }
+  // Production default: connects to the live SkillSphere backend on Render
+  if (import.meta.env.PROD) {
+    return 'https://skillsphere-33s9.onrender.com/api/v1';
+  }
+  // Local development default: uses Vite proxy
+  return '/api/v1';
+};
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
