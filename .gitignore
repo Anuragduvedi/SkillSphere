@@ -6,7 +6,15 @@ __pycache__/
 .Python
 backend/venv/
 backend/.env
+.env
+**/.env
+!**/.env.example
+!**/.env.production
 skillsphere.db
+backend/skillsphere.db
+*.db
+*.sqlite
+*.sqlite3
 backend/uploads/*
 !backend/uploads/.gitkeep
 

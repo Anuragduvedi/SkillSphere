@@ -41,6 +41,12 @@ try:
             conn.execute(text("ALTER TABLE proctoring_events ADD COLUMN strike_number INTEGER DEFAULT 1"))
         if 'session_id' not in p_cols:
             conn.execute(text("ALTER TABLE proctoring_events ADD COLUMN session_id VARCHAR(100)"))
+
+        # Check users columns
+        u_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+        if 'last_login_at' not in u_cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
+
         conn.commit()
 except Exception as e:
     pass

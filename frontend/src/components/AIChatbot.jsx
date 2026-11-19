@@ -11,40 +11,72 @@ import {
   RotateCcw,
   Minimize2,
   Maximize2,
-  ChevronRight,
-  HelpCircle,
   Camera,
   FileText,
-  AlertTriangle
+  Briefcase,
+  HelpCircle,
+  Globe,
+  AlertCircle,
+  Clock,
+  Compass,
+  Film,
+  Code
 } from 'lucide-react';
 import { chatbotAPI } from '../services/api';
 
-const QUICK_PROMPTS = [
-  { icon: ShieldAlert, label: '3-Strike Proctoring Rules', prompt: 'What are the AI proctoring rules and three-strike policy?' },
-  { icon: FileText, label: '20-Question Assessments', prompt: 'How do the 20-question technical assessments work?' },
-  { icon: Camera, label: 'Camera Troubleshooting', prompt: 'My camera is not working or not detected. How can I fix it?' },
-  { icon: Sparkles, label: 'Resume OCR & Matching', prompt: 'How does resume OCR parsing and skill match scoring work?' },
+const DEFAULT_WELCOME_MESSAGE = {
+  id: 'welcome',
+  role: 'model',
+  content:
+    "Hey! 😄 What's on your mind today? We can chat casually about your day, movies, tech, coding roadmaps, or check your SkillSphere jobs and assessments! Hindi, Punjabi, English or Hinglish – I'm comfortable with all!",
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+};
+
+const MULTILINGUAL_QUICK_PROMPTS = [
+  { icon: Sparkles, label: 'Ki haal aa veere? 🙏', prompt: 'ki haal aa veere?' },
+  { icon: Film, label: 'Thriller Movies 🍿', prompt: 'suggest me some thriller movies' },
+  { icon: Code, label: 'Learn Python 🐍', prompt: 'bro mujhe Python seekhni hai' },
+  { icon: Compass, label: 'Mera Status Kya Hai?', prompt: 'Mera status kya hai aur agla step kya hai?' },
+  { icon: FileText, label: 'Pending Assessment 📝', prompt: 'mera assessment pending hai, ab kya karun?' },
+  { icon: ShieldAlert, label: 'AI 3-Strike Rules 🛡️', prompt: 'What are the AI proctoring rules and three-strike policy?' },
 ];
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'model',
-      content:
-        "👋 **Welcome to SkillSphere AI Assistant!**\n\nI can answer questions regarding our **20-Question Technical Assessments**, **MediaPipe AI Camera Proctoring & Three-Strike rules**, **Resume OCR extraction**, or help you troubleshoot camera and platform issues.",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+  
+  // Restore session chat history if present
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('skillsphere_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read session chat history:', e);
+    }
+    return [DEFAULT_WELCOME_MESSAGE];
+  });
+
   const [isLoading, setIsLoading] = useState(false);
-  const [botStatus, setBotStatus] = useState({ online: true, mode: 'Gemini AI' });
+  const [botStatus, setBotStatus] = useState({ online: true, mode: 'Native AI Engine' });
   const [unreadCount, setUnreadCount] = useState(0);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Persist messages to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('skillsphere_chat_history', JSON.stringify(messages));
+    } catch (e) {
+      // Ignore quota storage issues
+    }
+  }, [messages]);
 
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
@@ -58,10 +90,10 @@ export default function AIChatbot() {
     }
   }, [messages, isOpen, isMinimized]);
 
-  // Focus input when opened
+  // Focus input when chat opens
   useEffect(() => {
     if (isOpen && !isMinimized) {
-      setTimeout(() => inputRef.current?.focus(), 200);
+      setTimeout(() => inputRef.current?.focus(), 250);
     }
   }, [isOpen, isMinimized]);
 
@@ -73,12 +105,11 @@ export default function AIChatbot() {
         if (res.data) {
           setBotStatus({
             online: res.data.status === 'online',
-            mode: res.data.mode || 'Gemini 1.5/2.0 API',
+            mode: res.data.gemini_configured ? 'Gemini 1.5' : 'Native AI Engine',
           });
         }
       } catch (err) {
-        // Fallback engine remains available
-        setBotStatus({ online: true, mode: 'SkillSphere Native AI' });
+        setBotStatus({ online: true, mode: 'Native AI Engine' });
       }
     }
     checkStatus();
@@ -106,10 +137,10 @@ export default function AIChatbot() {
     setIsLoading(true);
 
     try {
-      // Build lightweight conversation history
-      const historyPayload = newMessages
+      // Build conversation history of prior turns for backend context
+      const historyPayload = messages
         .filter((m) => m.id !== 'welcome')
-        .slice(-6)
+        .slice(-10)
         .map((m) => ({
           role: m.role,
           content: m.content,
@@ -123,7 +154,7 @@ export default function AIChatbot() {
         {
           id: 'bot_' + Date.now(),
           role: 'model',
-          content: replyData.reply || 'I am here to assist with SkillSphere assessments and proctoring.',
+          content: replyData.reply || 'I am here to guide you with your applications and assessments.',
           provider: replyData.provider,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
@@ -136,7 +167,7 @@ export default function AIChatbot() {
           id: 'bot_err_' + Date.now(),
           role: 'model',
           content:
-            "⚠️ **Temporary Service Notice:** I was unable to connect to the cloud AI service. However, our built-in rules system is active:\n\n- **Technical Assessment:** 20 questions, 25 minutes limit, 60% passing mark.\n- **Camera Proctoring:** 3-strike policy (Strike 1: Yellow Warning, Strike 2: Final Warning, Strike 3: Immediate Auto-Submission).\n- **Camera Setup:** Grant camera access in your browser bar and keep your face visible in frame.",
+            "⚠️ **Service Note:** I am temporarily having trouble reaching the main network, but here is quick help:\n\n- **Assessments:** 20 technical questions, 25-minute timer, 60% passing mark.\n- **Camera:** Grant permission in your browser address bar and face the camera.\n- **3-Strike Rules:** Strike 1 Yellow Warning, Strike 2 Orange Warning, Strike 3 Red Auto-Submission.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -153,15 +184,17 @@ export default function AIChatbot() {
   };
 
   const clearChat = () => {
-    setMessages([
+    const resetMessages = [
       {
-        id: 'welcome_reset',
+        id: 'welcome_' + Date.now(),
         role: 'model',
         content:
-          "✨ **Chat history reset.**\n\nHow can I help you today with assessments, camera proctoring, or technical questions?",
+          "✨ **Chat history cleared.**\n\nHey again! What would you like to know about SkillSphere jobs, assessments, or your status? Ask in English, Hindi, Punjabi or Hinglish!",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
-    ]);
+    ];
+    setMessages(resetMessages);
+    sessionStorage.removeItem('skillsphere_chat_history');
   };
 
   // Helper to render basic markdown formatting cleanly
@@ -171,14 +204,14 @@ export default function AIChatbot() {
       // Headers
       if (line.startsWith('### ')) {
         return (
-          <h4 key={idx} className="text-sm font-bold text-cyan-300 mt-2 mb-1">
+          <h4 key={idx} className="text-sm font-bold text-cyan-300 mt-2.5 mb-1">
             {line.replace('### ', '')}
           </h4>
         );
       }
       if (line.startsWith('## ')) {
         return (
-          <h3 key={idx} className="text-base font-bold text-white mt-2 mb-1">
+          <h3 key={idx} className="text-sm font-bold text-white mt-2 mb-1">
             {line.replace('## ', '')}
           </h3>
         );
@@ -195,8 +228,8 @@ export default function AIChatbot() {
       if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
         const itemText = line.trim().substring(2);
         return (
-          <div key={idx} className="flex items-start gap-1.5 my-0.5 text-xs text-slate-300 pl-1">
-            <span className="text-cyan-400 mt-0.5">•</span>
+          <div key={idx} className="flex items-start gap-1.5 my-0.5 text-xs text-slate-200 pl-1 leading-relaxed">
+            <span className="text-cyan-400 mt-0.5 shrink-0">•</span>
             <span>{parseInlineMarkdown(itemText)}</span>
           </div>
         );
@@ -205,14 +238,14 @@ export default function AIChatbot() {
       const numMatch = line.trim().match(/^(\d+)\.\s+(.*)/);
       if (numMatch) {
         return (
-          <div key={idx} className="flex items-start gap-1.5 my-0.5 text-xs text-slate-300 pl-1">
+          <div key={idx} className="flex items-start gap-1.5 my-0.5 text-xs text-slate-200 pl-1 leading-relaxed">
             <span className="font-mono text-cyan-400 text-[11px] shrink-0">{numMatch[1]}.</span>
             <span>{parseInlineMarkdown(numMatch[2])}</span>
           </div>
         );
       }
       if (!line.trim()) {
-        return <div key={idx} className="h-1" />;
+        return <div key={idx} className="h-1.5" />;
       }
       return (
         <p key={idx} className="text-xs text-slate-200 my-0.5 leading-relaxed">
@@ -229,9 +262,7 @@ export default function AIChatbot() {
     let keyIdx = 0;
 
     while (remaining.length > 0) {
-      // Match **bold**
       const boldMatch = remaining.match(/\*\*(.*?)\*\*/);
-      // Match `code`
       const codeMatch = remaining.match(/`(.*?)`/);
 
       let firstMatch = null;
@@ -257,7 +288,7 @@ export default function AIChatbot() {
           );
         } else if (matchType === 'code') {
           parts.push(
-            <code key={keyIdx++} className="px-1 py-0.5 rounded bg-black/40 text-cyan-300 font-mono text-[11px]">
+            <code key={keyIdx++} className="px-1.5 py-0.5 rounded bg-black/50 text-cyan-300 font-mono text-[11px] border border-white/5">
               {firstMatch[1]}
             </code>
           );
@@ -288,24 +319,24 @@ export default function AIChatbot() {
                 setIsOpen(true);
                 setIsMinimized(false);
               }}
-              className="relative group p-4 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-xl shadow-cyan-500/25 border border-cyan-400/40 backdrop-blur-md flex items-center justify-center"
+              className="relative group p-4 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-2xl shadow-cyan-500/30 border border-cyan-400/50 backdrop-blur-md flex items-center justify-center cursor-pointer"
               aria-label="Open SkillSphere AI Chatbot"
             >
               {/* Glowing animated ping rings */}
-              <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-40 blur-sm group-hover:opacity-80 transition duration-500 animate-pulse" />
+              <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 opacity-40 blur-md group-hover:opacity-80 transition duration-500 animate-pulse" />
               
               <Bot className="w-6 h-6 text-white relative z-10" />
 
               {/* Unread badge */}
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-md">
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-md z-20">
                   {unreadCount}
                 </span>
               )}
 
               {/* Tooltip on hover */}
-              <span className="absolute right-full mr-3 px-3 py-1.5 rounded-xl bg-slate-900/90 text-xs font-semibold text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-lg pointer-events-none">
-                SkillSphere AI Assistant
+              <span className="absolute right-full mr-3 px-3 py-1.5 rounded-xl bg-slate-900/90 text-xs font-semibold text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-lg pointer-events-none hidden sm:block">
+                SkillSphere AI Assistant 🌐
               </span>
             </motion.button>
           )}
@@ -320,19 +351,19 @@ export default function AIChatbot() {
                 opacity: 1,
                 y: 0,
                 scale: 1,
-                height: isMinimized ? 'auto' : '620px',
+                height: isMinimized ? 'auto' : '640px',
               }}
               exit={{ opacity: 0, y: 30, scale: 0.95 }}
               transition={{ duration: 0.22 }}
-              className="w-[92vw] sm:w-[420px] max-w-[420px] rounded-2xl bg-dark-900/95 border border-cyan-500/30 backdrop-blur-2xl shadow-2xl shadow-cyan-950/50 flex flex-col overflow-hidden"
-              style={{ maxHeight: '82vh' }}
+              className="w-[94vw] sm:w-[440px] max-w-[440px] rounded-3xl bg-dark-900/95 border border-cyan-500/30 backdrop-blur-2xl shadow-2xl shadow-cyan-950/60 flex flex-col overflow-hidden"
+              style={{ maxHeight: '85vh' }}
             >
               {/* Header */}
-              <div className="p-4 bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-blue-950/60 border-b border-cyan-500/20 flex items-center justify-between">
+              <div className="p-4 bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-indigo-950/70 border-b border-cyan-500/20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-black font-black shadow-md shadow-cyan-500/20">
-                      <Bot className="w-5 h-5 text-black" />
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center text-black font-black shadow-md shadow-cyan-500/20">
+                      <Bot className="w-5 h-5 text-white" />
                     </div>
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-dark-900" />
                   </div>
@@ -340,12 +371,12 @@ export default function AIChatbot() {
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white tracking-tight">SkillSphere AI</h3>
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                        {botStatus.mode.includes('Gemini') ? 'Gemini 1.5' : 'Native AI'}
+                        {botStatus.mode}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Ready to assist • 24/7
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <Globe className="w-3 h-3 text-cyan-400" />
+                      <span>Hindi • Punjabi • English • Hinglish</span>
                     </p>
                   </div>
                 </div>
@@ -396,20 +427,20 @@ export default function AIChatbot() {
                                 : 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
                             }`}
                           >
-                            {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                            {isUser ? <User className="w-3.5 h-3.5 text-black" /> : <Bot className="w-3.5 h-3.5" />}
                           </div>
 
                           {/* Message Bubble */}
-                          <div className={`max-w-[82%] ${isUser ? 'text-right' : 'text-left'}`}>
+                          <div className={`max-w-[84%] ${isUser ? 'text-right' : 'text-left'}`}>
                             <div
-                              className={`p-3 rounded-2xl text-xs ${
+                              className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
                                 isUser
-                                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-tr-none shadow-md shadow-cyan-600/10'
+                                  ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white rounded-tr-none shadow-md shadow-cyan-600/10'
                                   : 'bg-white/5 border border-white/10 text-slate-200 rounded-tl-none shadow-sm'
                               }`}
                             >
                               {isUser ? (
-                                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
                               ) : (
                                 renderFormattedContent(msg.content)
                               )}
@@ -432,6 +463,7 @@ export default function AIChatbot() {
                           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <span className="text-[11px] text-slate-400 ml-1">Thinking...</span>
                         </div>
                       </div>
                     )}
@@ -439,21 +471,24 @@ export default function AIChatbot() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Quick Prompts Bar */}
-                  <div className="px-4 py-2 border-t border-white/5 bg-slate-950/40">
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-cyan-400" />
-                      Quick Questions
-                    </p>
+                  {/* Multilingual Quick Prompts Bar */}
+                  <div className="px-4 py-2 border-t border-white/5 bg-slate-950/50">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        Suggested Questions
+                      </p>
+                      <span className="text-[10px] text-cyan-300">Tap to Ask</span>
+                    </div>
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                      {QUICK_PROMPTS.map((qp, idx) => {
+                      {MULTILINGUAL_QUICK_PROMPTS.map((qp, idx) => {
                         const Icon = qp.icon;
                         return (
                           <button
                             key={idx}
                             disabled={isLoading}
                             onClick={() => handleSendMessage(qp.prompt)}
-                            className="shrink-0 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/10 border border-white/10 hover:border-cyan-500/30 text-[11px] text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                            className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/15 border border-white/10 hover:border-cyan-500/40 text-[11px] text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                           >
                             <Icon className="w-3 h-3 text-cyan-400" />
                             <span>{qp.label}</span>
@@ -473,20 +508,22 @@ export default function AIChatbot() {
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
-                        placeholder="Ask about proctoring, 20-question tests, rules..."
+                        placeholder="Chat casually, ask anything, or inquire about jobs & tests..."
                         className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 text-xs text-white placeholder-slate-500 disabled:opacity-50"
                       />
                       <button
                         onClick={() => handleSendMessage()}
                         disabled={!inputMessage.trim() || isLoading}
-                        className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all shadow-md shadow-cyan-500/20 shrink-0"
+                        className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all shadow-md shadow-cyan-500/20 shrink-0 cursor-pointer"
                         aria-label="Send Message"
                       >
                         <Send className="w-4 h-4" />
                       </button>
                     </div>
-                    <p className="text-[10px] text-slate-500 text-center mt-2">
-                      SkillSphere AI Assistant • Powered by Google Gemini API
+                    <p className="text-[10px] text-slate-500 text-center mt-2 flex items-center justify-center gap-1">
+                      <span>Conversational AI Assistant</span>
+                      <span>•</span>
+                      <span>General Chat & SkillSphere Intelligence</span>
                     </p>
                   </div>
                 </>

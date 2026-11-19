@@ -32,6 +32,22 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
 
+# ================= PASSWORD RESET SCHEMAS =================
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+
+class VerifyOTPRequest(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+    otp: str = Field(..., min_length=4, max_length=10)
+
+class ResetPasswordRequest(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+    reset_token: str = Field(..., min_length=10)
+    new_password: str = Field(..., min_length=6)
+
+class ResendOTPRequest(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+
 # ================= SKILL SCHEMAS =================
 class SkillSchema(BaseModel):
     skill_id: int

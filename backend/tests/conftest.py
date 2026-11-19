@@ -33,6 +33,12 @@ try:
         t_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(assessment_templates)")).fetchall()]
         if 'description' not in t_cols:
             conn.execute(text("ALTER TABLE assessment_templates ADD COLUMN description TEXT"))
+
+        # Check users columns
+        u_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+        if 'last_login_at' not in u_cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
+
         conn.commit()
 except Exception:
     pass

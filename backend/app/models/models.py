@@ -48,6 +48,7 @@ class User(Base):
     role = Column(String(50), default="job_seeker")
     created_date = Column(DateTime)
     is_active = Column(Boolean, default=True)
+    last_login_at = Column(DateTime, nullable=True)
 
     candidate = relationship(
         "Candidate",
@@ -588,6 +589,24 @@ class ProctoringEvent(Base):
 
     assessment = relationship("Assessment", back_populates="proctoring_events")
     candidate = relationship("Candidate")
+
+
+# ==========================================
+# PASSWORD RESET / OTP MODEL
+# ==========================================
+
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+
+    reset_id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), index=True, nullable=False)
+    otp = Column(String(10), nullable=False)
+    reset_token = Column(String(100), unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    is_used = Column(Boolean, default=False)
+
 
 # BACKWARD-COMPATIBILITY ALIASES
 # ==========================================
